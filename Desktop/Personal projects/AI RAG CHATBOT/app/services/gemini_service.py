@@ -30,3 +30,33 @@ class GeminiService:
             len(response.text),
         )
         return response.text
+
+    
+    @staticmethod
+    def stream_response(prompt: str):
+        
+        logger.debug(
+            "Gemini streaming started prompt_length=%s prompt_preview=%s",
+            len(prompt),
+            truncate(prompt),
+        )
+
+        client = genai.Client(
+            api_key=GOOGLE_API_KEY,
+        )
+
+        response = client.models.generate_content_stream(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+
+        for chunk in response:
+
+            if chunk.text:
+                yield chunk.text
+
+        logger.debug(
+            "Gemini streaming completed response_length=%s",
+            len(response.text),
+        )
+        return response.text

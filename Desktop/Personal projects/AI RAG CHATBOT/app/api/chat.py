@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-
+from fastapi.responses import StreamingResponse
 from app.logger import get_logger, truncate
 from app.schemas.chat_schema import ChatRequest
 from app.services.rag_service import RAGService
@@ -19,7 +19,7 @@ async def chat(payload: ChatRequest):
     )
 
     try:
-        result = RAGService.ask(payload.question)
+        result = RAGService.ask(payload.session_id, payload.question,)
     except Exception:
         logger.exception(
             "Chat request failed question=%s",
@@ -35,3 +35,19 @@ async def chat(payload: ChatRequest):
         len(result.get("sources", [])),
     )
     return result
+
+
+@router.post('/stream')
+async def chatStream(payload:ChatRequest):
+    logger.info(
+        "Stream request received question=%s",
+        truncate(payload.question)
+    )
+
+    return StreamingResponse(
+        RAGService.stream_answer(
+            payload.session_id,
+            payload.question
+        ),
+        media_type='text/plain'
+    )
