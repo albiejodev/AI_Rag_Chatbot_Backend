@@ -2,7 +2,8 @@ from app.db.chroma_db import ChromaDB
 from app.logger import get_logger, truncate
 from app.services.gemini_service import GeminiService
 from app.services.chat_memory_service import ChatMemoryService
-
+from app.services.retriever_service import (RetrieverService)
+from app.services.chain_service import (ChainService)
 
 logger = get_logger("services.rag_service")
 
@@ -23,10 +24,7 @@ class RAGService:
         for message in history:
             conversation_history += f"{message['role']}: {message['content']}\n"
 
-        results = ChromaDB.search(
-            question,
-            top_k=5,
-        )
+        results = RetrieverService.retrieve(question)
 
         documents = results["documents"][0]
         metadatas = results["metadatas"][0]
@@ -80,7 +78,11 @@ class RAGService:
             role="user",
             content=question,
         )
-        answer = GeminiService.generate_response(prompt)
+        answer = ChainService.run(
+                history=conversation_history,
+                context=context,
+                question=question
+        )
 
         ChatMemoryService.add_message(
             session_id=session_id,
@@ -107,10 +109,7 @@ class RAGService:
         question: str
     ):
 
-        results = ChromaDB.search(
-            question,
-            top_k=5
-        )
+        results = RetrieverService.retrieve(question)
 
         documents = results["documents"][0]
 

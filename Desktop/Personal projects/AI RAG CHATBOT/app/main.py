@@ -1,14 +1,17 @@
 import time
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
-
 from app.api.chat import router as chat_router
 from app.api.debug import router as debug_router
 from app.api.document import router as document_router
 from app.api.search import router as search_router
 from app.api.upload import router as upload_router
 from app.logger import get_logger, setup_logging
+from app.api.memory import router as memory_router
+from app.config import (
+    LLM_PROVIDER,
+    LLM_MODEL,
+)
 
 logger = get_logger("main")
 
@@ -16,6 +19,17 @@ logger = get_logger("main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    logger.info(
+        """
+=========================================
+ AI RAG CHATBOT STARTED
+ Provider : %s
+ Model    : %s
+=========================================
+""",
+        LLM_PROVIDER,
+        LLM_MODEL,
+    )
     logger.info("Application starting title=%s", app.title)
     yield
     logger.info("Application shutting down")
@@ -26,11 +40,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+
 app.include_router(upload_router)
 app.include_router(debug_router)
 app.include_router(search_router)
 app.include_router(chat_router)
 app.include_router(document_router)
+app.include_router(memory_router)
 
 
 @app.middleware("http")

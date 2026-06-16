@@ -1,6 +1,9 @@
-class ChatMemoryService:
+import json
 
-    conversations = {}
+from app.cache.redis_client import redis_client
+
+
+class ChatMemoryService:
 
     @classmethod
     def add_message(
@@ -10,19 +13,23 @@ class ChatMemoryService:
         content: str
     ):
 
-        if session_id not in cls.conversations:
+        key = f"chat:{session_id}"
 
-            cls.conversations[
-                session_id
-            ] = []
-
-        cls.conversations[
+        existing_messages = cls.get_messages(
             session_id
-        ].append(
+        )
+
+        existing_messages.append(
             {
                 "role": role,
                 "content": content
             }
+        )
+
+        redis_client.setex(
+            key,
+            86400,
+            json.dumps(existing_messages)
         )
 
     @classmethod
@@ -31,7 +38,11 @@ class ChatMemoryService:
         session_id: str
     ):
 
-        return cls.conversations.get(
-            session_id,
-            []
-        )
+        key = f"chat:{session_id}"
+
+        data = redis_client.get(key)
+
+        if not data:
+            return []
+
+        return json.loads(data)
